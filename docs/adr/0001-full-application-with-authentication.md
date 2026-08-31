@@ -1,0 +1,3 @@
+# Build a full web application with authentication, not a headless scheduled agent
+
+We considered three shapes: a purely scheduled background agent with no UI, a scheduled agent paired with a static/unauthenticated results page, and a full web application with login. The scheduled-only and no-login options were ruled out once the product needed to serve multiple People (the User's friends and family), each connecting their own Mail Accounts — a Digest recipient must be distinguishable from another, and each person authorizes their own Gmail/Outlook independently. That requires an identity system and per-User data isolation, which only a logged-in application provides. Confirmed with the User in the 2026-08-31 grilling session.

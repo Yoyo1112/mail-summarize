@@ -28,7 +28,7 @@ function base64url(input: Buffer): string {
 function waitForAuthorizationCode(port: number): Promise<string> {
   return new Promise((resolve, reject) => {
     const server = http.createServer((req, res) => {
-      const url = new URL(req.url ?? "/", `http://127.0.0.1:${port}`);
+      const url = new URL(req.url ?? "/", `http://localhost:${port}`);
       const code = url.searchParams.get("code");
       const error = url.searchParams.get("error");
 
@@ -45,7 +45,12 @@ function waitForAuthorizationCode(port: number): Promise<string> {
       else reject(new Error("No authorization code in the redirect."));
     });
 
-    server.listen(port, "127.0.0.1");
+    // No host given: binds every interface, so it answers "localhost" whichever
+    // of ::1 / 127.0.0.1 the OS resolves it to. Google's loopback exemption for
+    // Desktop app clients only recognizes a "localhost" redirect_uri, not a bare
+    // 127.0.0.1 IP literal — using the IP gets classified as a generic (blocked)
+    // flow ("flowName=GeneralOAuthFlow") even on a genuine Desktop app client.
+    server.listen(port);
   });
 }
 
@@ -55,11 +60,11 @@ async function main() {
 
   // Bind first so we know which port was actually assigned before building the redirect_uri.
   const server = http.createServer();
-  await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
+  await new Promise<void>((resolve) => server.listen(0, resolve));
   const port = (server.address() as { port: number }).port;
   server.close();
 
-  const redirectUri = `http://127.0.0.1:${port}`;
+  const redirectUri = `http://localhost:${port}`;
 
   const authUrl = new URL("https://accounts.google.com/o/oauth2/v2/auth");
   authUrl.searchParams.set("client_id", clientId!);

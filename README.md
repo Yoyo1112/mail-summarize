@@ -15,7 +15,7 @@ Get a key from the [Anthropic Console](https://console.anthropic.com/settings/ke
 1. In [Google Cloud Console](https://console.cloud.google.com/), create a project (or reuse one).
 2. **APIs & Services → Library** → enable the **Gmail API**.
 3. **APIs & Services → OAuth consent screen** → configure it (External user type is fine — you'll stay in "Testing" status; see [ADR](./docs/adr/) history for why that's fine for personal use). Add your own Gmail address under **Test users**.
-4. **APIs & Services → Credentials → Create Credentials → OAuth client ID** → Application type: **TVs and Limited Input devices**.
+4. **APIs & Services → Credentials → Create Credentials → OAuth client ID** → Application type: **Desktop app**. (Not "TVs and Limited Input devices" — Google's device-code flow doesn't allow Gmail scopes at all, so `auth:gmail` below uses a local-loopback flow instead, which needs a Desktop app client.)
 5. Copy the **Client ID** and **Client secret** into `.env` as `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET`.
 
 ### 3. Outlook (Microsoft) app registration

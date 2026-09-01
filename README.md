@@ -21,9 +21,10 @@ Get a key from the [Anthropic Console](https://console.anthropic.com/settings/ke
 ### 3. Outlook (Microsoft) app registration
 
 1. In the [Azure Portal](https://portal.azure.com/) → **App registrations → New registration**.
-2. Name it anything. Supported account types: **Personal Microsoft accounts only** (or "Accounts in any organizational directory and personal Microsoft accounts" if you also want a work/school inbox later).
-3. After creation, go to **Authentication** → under **Advanced settings**, set **Allow public client flows** to **Yes**.
-4. Copy the **Application (client) ID** into `.env` as `MICROSOFT_CLIENT_ID`. Leave `MICROSOFT_TENANT_ID` as `consumers` unless you're using a work/school account.
+2. Name it anything. Supported account types: **Personal Microsoft accounts only** (or "Accounts in any organizational directory and personal Microsoft accounts" if you also want a work/school inbox later — note a work/school tenant may require IT admin approval before you can consent, which is outside this app's control).
+3. After creation, go to **Authentication** → **Add a platform → Mobile and desktop applications** → add `http://localhost` as a redirect URI (the port is ignored for localhost redirect URIs, so no exact port needs registering — `auth:outlook` picks a free one at runtime). Do **not** rely on the suggested `https://login.microsoftonline.com/common/oauth2/nativeclient` checkbox — Microsoft's own redirect for that URI is currently broken (bounces to `/wrongplace` and loses the auth code; see [this report](https://github.com/abraunegg/onedrive/discussions/3558)).
+4. Still on **Authentication**, under **Advanced settings**, set **Allow public client flows** to **Yes**.
+5. Copy the **Application (client) ID** into `.env` as `MICROSOFT_CLIENT_ID`. Leave `MICROSOFT_TENANT_ID` as `consumers` for a personal account, or `common` if you want both personal and work/school accounts to work.
 
 ### 4. Resend (sends the digest email)
 

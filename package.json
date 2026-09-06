@@ -8,6 +8,7 @@
     "digest": "tsx src/index.ts",
     "auth:gmail": "tsx scripts/auth-gmail.ts",
     "auth:outlook": "tsx scripts/auth-outlook.ts",
+    "test:send": "tsx scripts/test-send.ts",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {

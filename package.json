@@ -9,6 +9,7 @@
     "auth:gmail": "tsx scripts/auth-gmail.ts",
     "auth:outlook": "tsx scripts/auth-outlook.ts",
     "test:send": "tsx scripts/test-send.ts",
+    "test:probe": "tsx scripts/send-test-probe.ts",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {

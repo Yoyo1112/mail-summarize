@@ -29,12 +29,20 @@ The bundle of Summaries (and any pending Detected Events) produced for a User in
 _Avoid_: Report, Notification (the Digest is the content; the email that announces it is the notification).
 
 **Detected Event**:
-A calendar event — title, time, location — extracted from an email during Triage. Held in a pending state until the User confirms it; never written to a calendar automatically.
+A calendar event — title, time, location — extracted from an email during Triage. Starts in a Pending state; a User's Confirmation or Dismissal resolves it. Never written to a calendar automatically.
 _Avoid_: Appointment, Reminder, Calendar item.
+
+**Pending / Confirmed / Dismissed**:
+The three states a Detected Event moves through. Pending is the starting state (awaiting the User); Confirmation and Dismissal are the only two ways out of it, and both are terminal — a resolved Detected Event doesn't go back to Pending.
+_Avoid_: Open/closed, Approved/rejected.
 
 **Confirmation**:
 The User's act, taken in the web app, of approving a Detected Event so it gets written to a Target Calendar. Confirmation never happens by clicking a link inside a Digest email — see [ADR-0003](./docs/adr/0003-no-actionable-links-in-digest-emails.md).
 _Avoid_: Approval, Acceptance.
+
+**Dismissal**:
+The User's act of marking a Detected Event as not worth acting on. Nothing is written to a calendar; the event simply stops appearing among Pending events.
+_Avoid_: Rejection, Deletion (the Detected Event's record isn't removed, just resolved).
 
 **Target Calendar**:
 The calendar a confirmed Detected Event is written to. Defaults to the calendar belonging to the same provider as the Detected Event's source Mail Account (Gmail → Google Calendar, Outlook → Outlook Calendar), but the User can override it at confirmation time to any calendar reachable through their other Mail Accounts.

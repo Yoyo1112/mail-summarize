@@ -19,6 +19,8 @@ interface MobileEventCardProps {
   onConfirm: () => void;
   onIgnore: () => void;
   onUndo: () => void;
+  /** True while a write cannot succeed — the calendar scopes are not granted. */
+  confirmDisabled?: boolean;
 }
 
 /** Prose for a failed write, naming the account the user has to fix. */
@@ -47,6 +49,7 @@ export function MobileEventCard({
   onConfirm,
   onIgnore,
   onUndo,
+  confirmDisabled = false,
 }: MobileEventCardProps) {
   const target = calendars.find((calendar) => calendar.id === event.targetCalendarId);
   const date = formatEventDateShort(event.startsAt);
@@ -210,6 +213,8 @@ export function MobileEventCard({
         </div>
       </div>
 
+      {/* No calendars to choose from until calendar access is granted. */}
+      {calendars.length > 0 && (
       <div className={styles.calendarBlock}>
         <div className={styles.fieldLabel}>Target calendar</div>
         <button type="button" className={styles.calendarTrigger} onClick={onOpenSheet}>
@@ -227,9 +232,16 @@ export function MobileEventCard({
           </span>
         </button>
       </div>
+      )}
 
       <div className={styles.actions}>
-        <button type="button" className={styles.primary} onClick={onConfirm}>
+        <button
+          type="button"
+          className={styles.primary}
+          onClick={onConfirm}
+          disabled={confirmDisabled}
+          title={confirmDisabled ? "Calendar access has not been granted yet" : undefined}
+        >
           Add to calendar
         </button>
         <button type="button" className={styles.secondary} onClick={onIgnore}>

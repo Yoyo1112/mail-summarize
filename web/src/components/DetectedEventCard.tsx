@@ -18,6 +18,8 @@ interface DetectedEventCardProps {
   onIgnore: () => void;
   /** Reopens a resolved event: Undo after a Confirmation, Restore after a Dismissal. */
   onUndo: () => void;
+  /** True while a write cannot succeed — the calendar scopes are not granted. */
+  confirmDisabled?: boolean;
 }
 
 const STATUS_LABEL = {
@@ -48,6 +50,7 @@ export function DetectedEventCard({
   onConfirm,
   onIgnore,
   onUndo,
+  confirmDisabled = false,
 }: DetectedEventCardProps) {
   const { status } = event;
   const isPending = status === "pending";
@@ -135,6 +138,9 @@ export function DetectedEventCard({
         {isPending && (
           <div className={styles.actions}>
             <div>
+              {/* No calendars to choose from until calendar access is granted. */}
+              {calendars.length > 0 && (
+                <>
               <div className={`microLabel ${styles.fieldLabel}`}>Target calendar</div>
               <CalendarPicker
                 calendars={calendars}
@@ -145,12 +151,20 @@ export function DetectedEventCard({
                 onSelect={onSelectCalendar}
                 onClose={onClosePicker}
               />
+                </>
+              )}
             </div>
             <div className={styles.buttons}>
               <button type="button" className={styles.ghostButton} onClick={onIgnore}>
                 Not an event
               </button>
-              <button type="button" className={styles.primaryButton} onClick={onConfirm}>
+              <button
+                type="button"
+                className={styles.primaryButton}
+                onClick={onConfirm}
+                disabled={confirmDisabled}
+                title={confirmDisabled ? "Calendar access has not been granted yet" : undefined}
+              >
                 Add to calendar
               </button>
             </div>

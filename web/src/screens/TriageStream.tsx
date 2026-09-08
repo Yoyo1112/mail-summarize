@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { Calendar, DetectedEvent, Summary, Tab } from "../types";
+import type { ConnectedAccount } from "../lib/api";
 import { formatAgo } from "../lib/format";
 import { useIsMobile } from "../lib/useMediaQuery";
 import * as api from "../lib/api";
@@ -14,7 +15,11 @@ interface TriageStreamProps {
   summaryTotal: number;
   calendars: Calendar[];
   lastSyncedAt: string;
-  nextRunLabel: string;
+  /** True while the connected tokens lack calendar write scopes — blocks every write. */
+  scopeMissing: boolean;
+  accounts: ConnectedAccount[];
+  /** Re-fetches everything from the API; there is no live push. */
+  onReload: () => void;
 }
 
 /**
@@ -27,7 +32,9 @@ export function TriageStream({
   summaryTotal,
   calendars,
   lastSyncedAt,
-  nextRunLabel,
+  scopeMissing,
+  accounts,
+  onReload,
 }: TriageStreamProps) {
   const isMobile = useIsMobile();
 
@@ -37,6 +44,7 @@ export function TriageStream({
   const [sheetEventId, setSheetEventId] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   const [syncedAt, setSyncedAt] = useState(lastSyncedAt);
+  useEffect(() => setSyncedAt(lastSyncedAt), [lastSyncedAt]);
 
   const pending = useMemo(() => events.filter((e) => e.status === "pending"), [events]);
   const ignored = useMemo(() => events.filter((e) => e.status === "ignored"), [events]);
@@ -129,12 +137,11 @@ export function TriageStream({
 
   const onRefresh = useCallback(() => {
     setRefreshing(true);
-    // Stands in for re-fetching GET /events and GET /summaries.
-    window.setTimeout(() => {
-      setRefreshing(false);
-      setSyncedAt(new Date().toISOString());
-    }, 900);
-  }, []);
+    onReload();
+    // The reload replaces this component's props; the delay is only so the
+    // "Checking for new results…" label is legible on a fast local response.
+    window.setTimeout(() => setRefreshing(false), 600);
+  }, [onReload]);
 
   // No live push — a background tick keeps the "synced N min ago" line honest.
   const [, forceTick] = useState(0);
@@ -144,9 +151,7 @@ export function TriageStream({
   }, []);
 
   const ago = formatAgo(syncedAt);
-  const syncLine = refreshing
-    ? "Checking for new results…"
-    : `Synced ${ago} · next run ${nextRunLabel}`;
+  const syncLine = refreshing ? "Checking for new results…" : `Synced ${ago}`;
   const syncLabel = refreshing ? "Checking…" : `Synced ${ago.replace(" min", "m")}`;
 
   const sheetEvent = events.find((event) => event.id === sheetEventId) ?? null;
@@ -161,7 +166,8 @@ export function TriageStream({
           calendars={calendars}
           syncLabel={syncLabel}
           refreshing={refreshing}
-          nextRunLabel={nextRunLabel}
+          scopeMissing={scopeMissing}
+          accounts={accounts}
           expandedId={expandedId}
           onExpand={setExpandedId}
           onOpenSheet={setSheetEventId}
@@ -204,7 +210,8 @@ export function TriageStream({
       syncLine={syncLine}
       refreshing={refreshing}
       onRefresh={onRefresh}
-      nextRunLabel={nextRunLabel}
+      scopeMissing={scopeMissing}
+      accounts={accounts}
     />
   );
 }

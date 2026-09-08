@@ -65,8 +65,19 @@ This is how to judge whether detection is good enough to build on: run it over r
 for a while and read the list. A wrong event costs more than a missed one, so the prompt
 is deliberately conservative — most emails should yield nothing.
 
-The web UI that reviews and confirms these lives in [`web/`](./web/) and currently runs on
-fixtures; wiring it to this database is the next step.
+### 8. Review them in the browser
+
+```bash
+npm run serve   # http://localhost:3000
+```
+
+The web app in [`web/`](./web/) reads this database. Build it once with
+`cd web && npm install && npm run build`, and the same server serves it.
+
+Dismissing a wrong detection ("Not an event") works and sticks. **Confirming does not
+yet** — the connected tokens hold read-only mail scopes, so the app shows a
+"Re-authorisation required" banner and keeps the confirm buttons disabled rather than
+pretending a write succeeded.
 
 ## Scheduling
 

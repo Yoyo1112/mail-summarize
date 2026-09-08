@@ -176,6 +176,48 @@ export function markProcessed(provider: MailProvider, messageIds: string[]): voi
   }
 }
 
+export function getEvent(id: string): StoredDetectedEvent | null {
+  const row = db().prepare(`select * from detected_events where id = ?`).get(id);
+  return row ? toEvent(row as unknown as EventRow) : null;
+}
+
+/**
+ * Dismissal — the event stops appearing among Pending. Nothing is written to a
+ * calendar and the record is not removed (CONTEXT.md: Dismissal).
+ */
+export function ignoreEvent(id: string): StoredDetectedEvent | null {
+  db()
+    .prepare(
+      `update detected_events
+          set status = 'ignored', ignored_at = ?, error_code = null, error_message = null
+        where id = ? and status != 'confirmed'`,
+    )
+    .run(new Date().toISOString(), id);
+  return getEvent(id);
+}
+
+/** Restore a dismissed event, or Undo a Confirmation — both return it to Pending. */
+export function restoreEvent(id: string): StoredDetectedEvent | null {
+  db()
+    .prepare(
+      `update detected_events
+          set status = 'pending', ignored_at = null, confirmed_at = null,
+              provider_event_id = null, provider_event_url = null,
+              error_code = null, error_message = null
+        where id = ?`,
+    )
+    .run(id);
+  return getEvent(id);
+}
+
+/** Records which calendar a Confirmation should write to. */
+export function setTargetCalendar(id: string, calendarId: string): StoredDetectedEvent | null {
+  db()
+    .prepare(`update detected_events set target_calendar_id = ? where id = ?`)
+    .run(calendarId, id);
+  return getEvent(id);
+}
+
 export function listEventsByStatus(status: DetectedEventStatus): StoredDetectedEvent[] {
   const result = db()
     .prepare(`select * from detected_events where status = ? order by starts_at asc`)
@@ -211,6 +253,28 @@ export function listRecentSummaries(limit = 50): StoredSummary[] {
     receivedAt: row.received_at,
     createdAt: row.created_at,
   }));
+}
+
+export function setMeta(key: string, value: string): void {
+  db()
+    .prepare(`insert into meta (key, value) values (?, ?)
+              on conflict(key) do update set value = excluded.value`)
+    .run(key, value);
+}
+
+export function getMeta(key: string): string | null {
+  const row = db().prepare(`select value from meta where key = ?`).get(key);
+  return (row as { value: string } | undefined)?.value ?? null;
+}
+
+/** When the pipeline last completed a run — the page's freshness line. */
+export const LAST_RUN_AT = "last_run_at";
+
+export function countEventsByStatus(status: DetectedEventStatus): number {
+  const row = db()
+    .prepare(`select count(*) as n from detected_events where status = ?`)
+    .get(status);
+  return Number((row as { n: number } | undefined)?.n ?? 0);
 }
 
 export function countSummaries(): number {

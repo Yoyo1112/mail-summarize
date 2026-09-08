@@ -299,3 +299,9 @@
   cursor: pointer;
   flex: none;
 }
+
+.primary:disabled {
+  background: rgba(20, 19, 15, 0.28);
+  border-color: rgba(20, 19, 15, 0.28);
+  cursor: not-allowed;
+}

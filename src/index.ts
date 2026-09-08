@@ -7,7 +7,14 @@ import { triage } from "./triage/run.js";
 import { detectEvents } from "./detect/events.js";
 import { composeDigest } from "./digest/compose.js";
 import { sendDigest } from "./digest/send.js";
-import { filterUnprocessed, markProcessed, saveDetectedEvent, saveSummary } from "./store/repository.js";
+import {
+  LAST_RUN_AT,
+  filterUnprocessed,
+  markProcessed,
+  saveDetectedEvent,
+  saveSummary,
+  setMeta,
+} from "./store/repository.js";
 import { closeDb } from "./store/db.js";
 
 async function main() {
@@ -46,6 +53,8 @@ async function main() {
   const { subject, html, text } = composeDigest(triaged);
   await sendDigest(subject, html, text);
   console.log(`Digest sent to ${config.resend.toEmail}.`);
+
+  setMeta(LAST_RUN_AT, new Date().toISOString());
 }
 
 /**

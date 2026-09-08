@@ -60,6 +60,16 @@ create table if not exists processed_messages (
   processed_at text not null,
   primary key (provider, message_id)
 );
+
+/*
+ * Small key/value corner for run bookkeeping — currently just when the pipeline
+ * last completed. The page has no live push, so it always states the age of what
+ * it is showing, and that age has to come from somewhere.
+ */
+create table if not exists meta (
+  key   text primary key,
+  value text not null
+);
 `;
 
 let database: DatabaseSync | null = null;

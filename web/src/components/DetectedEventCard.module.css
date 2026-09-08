@@ -323,3 +323,14 @@
     padding: 13px 0;
   }
 }
+
+.primaryButton:disabled {
+  background: rgba(20, 19, 15, 0.28);
+  border-color: rgba(20, 19, 15, 0.28);
+  cursor: not-allowed;
+}
+
+.primaryButton:disabled:hover {
+  background: rgba(20, 19, 15, 0.28);
+  border-color: rgba(20, 19, 15, 0.28);
+}

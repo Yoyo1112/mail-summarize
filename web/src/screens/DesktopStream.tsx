@@ -1,4 +1,6 @@
 import type { Calendar, DetectedEvent, Summary, Tab } from "../types";
+import type { ConnectedAccount } from "../lib/api";
+import { ScopeBanner } from "../components/ScopeBanner";
 import { DetectedEventCard } from "../components/DetectedEventCard";
 import { SummaryTable } from "../components/SummaryTable";
 import { TabStrip } from "../components/TabStrip";
@@ -25,7 +27,9 @@ interface DesktopStreamProps {
   syncLine: string;
   refreshing: boolean;
   onRefresh: () => void;
-  nextRunLabel: string;
+  /** Blocks every write while the tokens hold read-only mail scopes. */
+  scopeMissing: boolean;
+  accounts: ConnectedAccount[];
 }
 
 /** 1a — desktop triage stream. */
@@ -48,7 +52,8 @@ export function DesktopStream({
   syncLine,
   refreshing,
   onRefresh,
-  nextRunLabel,
+  scopeMissing,
+  accounts,
 }: DesktopStreamProps) {
   function renderCard(event: DetectedEvent) {
     return (
@@ -63,6 +68,7 @@ export function DesktopStream({
         onConfirm={() => onConfirm(event.id)}
         onIgnore={() => onIgnore(event.id)}
         onUndo={() => onUndo(event.id)}
+        confirmDisabled={scopeMissing}
       />
     );
   }
@@ -82,6 +88,7 @@ export function DesktopStream({
         <div className={styles.body}>
           {tab === "needs-review" && (
             <>
+              {scopeMissing && <ScopeBanner accounts={accounts} />}
               <div className={styles.sectionHead}>
                 <span className={styles.sectionLabel}>Detected events · needs review</span>
                 <span className={styles.sectionNote}>
@@ -96,8 +103,8 @@ export function DesktopStream({
                   <div className={styles.empty}>
                     <span className={styles.emptyTitle}>Review queue is clear</span>
                     <span className={styles.emptyBody}>
-                      Next scheduled run at {nextRunLabel}. New detections show up after a
-                      refresh.
+                      Nothing detected from the last run. New detections show up after
+                      the next one — this page does not update on its own.
                     </span>
                   </div>
                 )}

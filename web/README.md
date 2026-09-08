@@ -8,14 +8,22 @@ React + TypeScript + Vite, per the handoff's guidance for a codebase whose backe
 already TypeScript (`README.md` § About the Design Files).
 
 ```bash
+# terminal 1 — the API, from the repository root
+npm run serve      # http://localhost:3000
+
+# terminal 2 — the client
 cd web
 npm install
-npm run dev        # http://localhost:5173
+npm run dev        # http://localhost:5173, proxies /api to the server above
 npm run build      # typecheck + production build
 ```
 
-This package is self-contained. It does not import from `../src`, and running it does
-not affect `npm run digest` — the Phase 1 pipeline is untouched.
+After `npm run build`, the API server also serves the built client, so
+http://localhost:3000 alone is enough — the Vite dev server is only for development.
+
+Data comes from the real API (`src/api/server.ts`), reading the SQLite database the
+pipeline writes ([ADR-0005](../docs/adr/0005-sqlite-for-phase-2-persistence.md)). Run
+`npm run digest` first, or the page shows its first-run state.
 
 ## What is implemented
 
@@ -36,31 +44,37 @@ not affect `npm run digest` — the Phase 1 pipeline is untouched.
 - **Optimistic Confirmation with rollback**: confirming flips the card immediately and,
   if the API rejects the write, returns it to pending with the failure attached to that
   card rather than silently dropped.
+- **Option 1f state 3 — missing calendar scope** (`ScopeBanner.tsx`), which is the
+  honest state today: the connected tokens hold read-only mail scopes, so every
+  Confirmation would fail. The banner sits above the queue and the confirm buttons are
+  disabled while it shows.
+- **First-run and API-unreachable states** in `App.tsx`.
 
 Screens render at the design's tokens (`src/styles/tokens.css`) — colours, type scale,
 spacing and radii are taken from the handoff's token section rather than eyeballed.
 
-### Seeing the write-failure state
+### What works against real data now
 
-There is no backend to fail, so load the page with `?simulate=write-failure` to make
-`confirmEvent` reject and exercise option 1d's failure card. Remove this flag from
-`src/lib/api.ts` once the real API lands.
+Dismissal ("Not an event") and Restore write to the database and survive a reload — so
+false detections can be triaged away today, which is exactly what is needed while
+judging detection quality.
+
+Confirmation cannot work yet: the API returns `missing_scope` rather than pretending
+to succeed, and the UI leaves the event Pending. Nothing is ever shown as added to a
+calendar unless it was.
 
 ## Not implemented yet
 
 Deliberately out of scope so far, listed so it is clear what is missing rather than
 overlooked:
 
-- **Options 1b, 1e, 1f**: the desktop split view, the edit-before-write variant, and
-  the first-run / missing-scope / quota panels.
-- **The backend.** There is none. The pipeline in `../src` is a one-shot batch job that
-  emails a Digest and exits — no database, no server, no `DetectedEvent` extraction, no
-  calendar writes. `src/fixtures.ts` stands in for the API and is shaped to match the
-  endpoints the handoff specifies (`GET /events`, `GET /summaries`, `GET /calendars`,
-  `POST /events/:id/confirm`, …). Swapping fixtures for real fetches is a one-file change.
-- **OAuth calendar scopes.** Current scopes are read-only (`gmail.readonly`, `Mail.Read`).
-  Confirmation cannot write to a calendar until `calendar.events` and `Calendars.ReadWrite`
-  are added and the auth scripts are re-run.
+- **Options 1b and 1e**: the desktop split view and the edit-before-write variant.
+- **1f's other states**: quota-exhausted, and the "Run now" button on first run.
+- **Calendar writes.** The current tokens are read-only (`gmail.readonly`, `Mail.Read`).
+  Until `calendar.events` and `Calendars.ReadWrite` are added and the auth scripts are
+  re-run, `POST /events/:id/confirm` returns `missing_scope` and no calendar can be
+  listed — so the Target Calendar picker has nothing to show and stays hidden.
+- **Pagination.** `GET /summaries` takes a `limit` but no cursor yet.
 
 ## Deviations from the handoff
 
@@ -83,5 +97,10 @@ overlooked:
   as the handoff specifies.
 - "Open in calendar" on the confirmed mobile card is disabled until the API returns the
   provider's event link.
+- The design's "Grant calendar access" button assumes a browser OAuth flow. Re-consent
+  happens from the command line in this phase, so the banner names the commands instead
+  of offering a button that cannot do anything.
+- The top bar shows "Synced N min ago" without the design's "next run HH:MM": nothing
+  schedules the pipeline yet, so there is no next run time to state.
 - The mobile summaries section is headed "today" only when it has today's Summaries;
   otherwise it says "recent", rather than showing older items under a "today" heading.

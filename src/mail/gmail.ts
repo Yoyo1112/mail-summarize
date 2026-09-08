@@ -32,6 +32,16 @@ function extractBody(payload: any): string {
   return "";
 }
 
+/**
+ * The address of the connected mailbox — the Mail Account, in CONTEXT.md's terms.
+ * Covered by the existing gmail.readonly scope, so this needs no re-consent.
+ */
+export async function getGmailAccountEmail(): Promise<string> {
+  if (config.google.accountEmail) return config.google.accountEmail;
+  const profile = await client().users.getProfile({ userId: "me" });
+  return profile.data.emailAddress ?? "";
+}
+
 /** Fetches mail received in the last `lookbackHours`. Nothing is persisted — see docs/adr/0002. */
 export async function fetchRecentGmail(lookbackHours: number): Promise<NormalizedEmail[]> {
   const gmail = client();

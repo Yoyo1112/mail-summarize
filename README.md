@@ -49,6 +49,25 @@ npm run digest
 
 Check `DIGEST_TO_EMAIL` for the result. If nothing important came through, you'll still get a "nothing new" email so you know it ran.
 
+### 7. See what was detected (Phase 2)
+
+Each run also extracts **Detected Events** — meetings and appointments found in the mail
+that passed Triage — and stores them Pending in a local SQLite database
+([ADR-0005](./docs/adr/0005-sqlite-for-phase-2-persistence.md)). Nothing is written to a
+calendar; that needs a Confirmation in the web app.
+
+```bash
+npm run events            # what is waiting for review
+npm run events -- ignored # or confirmed
+```
+
+This is how to judge whether detection is good enough to build on: run it over real mail
+for a while and read the list. A wrong event costs more than a missed one, so the prompt
+is deliberately conservative — most emails should yield nothing.
+
+The web UI that reviews and confirms these lives in [`web/`](./web/) and currently runs on
+fixtures; wiring it to this database is the next step.
+
 ## Scheduling
 
 [`.github/workflows/digest.yml`](./.github/workflows/digest.yml) runs this every 6 hours via GitHub Actions (not Vercel's own Cron Jobs — see the amendment in [ADR-0004](./docs/adr/0004-managed-cloud-paas-deployment.md) for why). To enable it:
@@ -58,3 +77,9 @@ Check `DIGEST_TO_EMAIL` for the result. If nothing important came through, you'l
 3. The workflow also runs on-demand from the **Actions** tab (`workflow_dispatch`) if you want to trigger it manually.
 
 If you change how often it runs, update both the `cron` schedule and `LOOKBACK_HOURS` in the workflow file so they match — otherwise you'll either miss emails or get the same one summarized twice.
+
+**The scheduled job does not detect events.** Its runner is discarded when the job ends,
+so the database would not survive it, and detecting there would spend an LLM call per run
+on results nobody can read — the workflow sets `DETECT_EVENTS=false` for that reason. Until
+Phase 3 puts this on a host with real storage, run `npm run digest` on the machine that
+keeps the database (a local cron or launchd job) if you want events collected.

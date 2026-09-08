@@ -1,0 +1,73 @@
+/* Design tokens from design_handoff_mail_to_calendar/README.md § Design Tokens. */
+
+:root {
+  /* Surfaces */
+  --ink: #14130f;
+  --paper: #f6f4ef;
+  --card: #fffdf8;
+  --board: #edeae3;
+
+  /* Rules — the four border alphas used across the design */
+  --rule-09: rgba(20, 19, 15, 0.09);
+  --rule-10: rgba(20, 19, 15, 0.1);
+  --rule-13: rgba(20, 19, 15, 0.13);
+  --rule-16: rgba(20, 19, 15, 0.16);
+  --rule-18: rgba(20, 19, 15, 0.18);
+  --rule-20: rgba(20, 19, 15, 0.2);
+
+  /* Secondary text. All body/metadata text stays at >= .62 alpha for 4.5:1 contrast. */
+  --text-62: rgba(20, 19, 15, 0.62);
+  --text-64: rgba(20, 19, 15, 0.64);
+  --text-65: rgba(20, 19, 15, 0.65);
+  --text-68: rgba(20, 19, 15, 0.68);
+  --text-72: rgba(20, 19, 15, 0.72);
+
+  /* Status */
+  --amber: #a9690a;
+  --amber-text: #8a5407;
+  --amber-tint: rgba(169, 105, 10, 0.13);
+  --green: #1e5b3c;
+  --green-tint: rgba(30, 91, 60, 0.08);
+  --red: #a32b1c;
+  --red-tint: rgba(163, 43, 28, 0.05);
+  --ignored-bar: rgba(20, 19, 15, 0.25);
+
+  /* Provider marks — placeholder letter tiles, see README § Assets */
+  --gmail-fg: #b4271c;
+  --gmail-bg: rgba(217, 48, 37, 0.12);
+  --outlook-fg: #1b5590;
+  --outlook-bg: rgba(30, 92, 158, 0.12);
+
+  /* Type */
+  --serif: "Instrument Serif", Georgia, serif;
+  --sans: "Public Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+
+  /* Radius */
+  --radius-control: 3px;
+  --radius-card: 4px;
+
+  /* Shadow */
+  --shadow-card: 0 1px 2px rgba(20, 19, 15, 0.06);
+  --shadow-dropdown: 0 12px 28px rgba(20, 19, 15, 0.16);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--board);
+  color: var(--ink);
+  font: 400 13.5px/1.55 var(--sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Shared: the uppercase mono micro-label used for every field and section heading. */
+.microLabel {
+  font: 500 10px/1 var(--mono);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-62);
+}

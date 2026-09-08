@@ -1,0 +1,24 @@
+/*
+ * Placeholder letter tile ("G" / "O"). README § Assets: replace with the official
+ * Gmail/Outlook marks when the codebase has an asset set — do not redraw them.
+ */
+.mark {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-control);
+  font-family: var(--mono);
+  font-weight: 500;
+  line-height: 1;
+}
+
+.gmail {
+  background: var(--gmail-bg);
+  color: var(--gmail-fg);
+}
+
+.outlook {
+  background: var(--outlook-bg);
+  color: var(--outlook-fg);
+}

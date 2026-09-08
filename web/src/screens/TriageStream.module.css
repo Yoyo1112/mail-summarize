@@ -1,0 +1,113 @@
+/* 1a — Desktop triage stream. App frame is 1160px wide on the board background. */
+.page {
+  display: flex;
+  justify-content: center;
+  padding: 28px 20px;
+}
+
+.frame {
+  width: 1160px;
+  max-width: 100%;
+  background: var(--paper);
+  border: 1px solid rgba(20, 19, 15, 0.14);
+  border-radius: var(--radius-card);
+  overflow: hidden;
+}
+
+.body {
+  padding: 26px 22px 34px;
+}
+
+.sectionHead {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 20px;
+  margin: 0 0 14px;
+}
+
+.sectionLabel {
+  font: 500 10px/1 var(--mono);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--text-62);
+}
+
+.sectionNote {
+  font: 400 11.5px/1 var(--sans);
+  color: var(--text-65);
+  text-align: right;
+}
+
+.privacyNote {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font: 400 11.5px/1 var(--sans);
+  color: var(--text-65);
+}
+
+.queue {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+/* Divider before the summaries section. */
+.summariesHead {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 20px;
+  margin: 34px 0 12px;
+  padding-top: 22px;
+  border-top: 1px solid var(--rule-13);
+}
+
+/* Queue-empty panel (README § Interactions). */
+.empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 44px 20px;
+  border: 1px dashed var(--rule-20);
+  border-radius: var(--radius-card);
+  background: rgba(30, 91, 60, 0.04);
+  text-align: center;
+}
+
+.emptyTitle {
+  font: 400 20px/1.2 var(--serif);
+}
+
+.emptyBody {
+  font: 400 12.5px/1.5 var(--sans);
+  color: var(--text-65);
+}
+
+@media (max-width: 760px) {
+  .page {
+    padding: 0;
+  }
+
+  .frame {
+    border: 0;
+    border-radius: 0;
+  }
+
+  .body {
+    padding: 20px 16px 28px;
+  }
+
+  .sectionHead,
+  .summariesHead {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+  }
+
+  .sectionNote {
+    text-align: left;
+  }
+}

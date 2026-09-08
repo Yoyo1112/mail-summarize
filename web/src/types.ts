@@ -43,6 +43,12 @@ export interface DetectedEvent {
   /** Null when detection found no location. The absence is shown, never hidden. */
   location: string | null;
   source: MailProvider;
+  /**
+   * The Mail Account the email arrived on (CONTEXT.md: Mail Account). A User may
+   * connect several of the same provider, so the provider alone does not identify
+   * which account a calendar shares with the email.
+   */
+  sourceAccountEmail: string;
   senderName: string;
   senderEmail: string;
   subject: string;
@@ -55,6 +61,8 @@ export interface DetectedEvent {
   error: ConfirmError | null;
   /** Set once confirmed, for the "Added to Google · work@acme.co" result line. */
   confirmedAt?: string;
+  /** Link to the created event in the provider's calendar, when the API returns one. */
+  providerEventUrl?: string | null;
   /** Set once ignored, for the "you dismissed this · 13:58" line. */
   ignoredAt?: string;
 }

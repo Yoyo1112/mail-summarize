@@ -27,18 +27,32 @@ not affect `npm run digest` — the Phase 1 pipeline is untouched.
   the Target Calendar picker, and the resolved row with Undo / Restore.
 - **Interactions**: calendar selection with the "same source" / "cross-provider" hint,
   Confirmation, Dismissal, Undo/Restore, and Refresh.
+- **Option 1c — mobile queue** (`src/screens/MobileQueue.tsx`), below 760px: the
+  narrow header, the pending queue with one card expanded and the rest collapsed to a
+  tap-to-review row, and summaries as stacked cards. Tap targets are 48px.
+- **Option 1d — mobile flows**: the calendar bottom sheet (`CalendarSheet.tsx`), the
+  written-successfully card, and the write-failed card with its diagnostic line and
+  Reconnect / Retry actions.
+- **Optimistic Confirmation with rollback**: confirming flips the card immediately and,
+  if the API rejects the write, returns it to pending with the failure attached to that
+  card rather than silently dropped.
 
 Screens render at the design's tokens (`src/styles/tokens.css`) — colours, type scale,
 spacing and radii are taken from the handoff's token section rather than eyeballed.
 
+### Seeing the write-failure state
+
+There is no backend to fail, so load the page with `?simulate=write-failure` to make
+`confirmEvent` reject and exercise option 1d's failure card. Remove this flag from
+`src/lib/api.ts` once the real API lands.
+
 ## Not implemented yet
 
-Deliberately out of this first pass, listed so it is clear what is missing rather than
+Deliberately out of scope so far, listed so it is clear what is missing rather than
 overlooked:
 
-- **Options 1b–1f**: split view, both mobile layouts, the edit-before-write variant,
-  and the empty/first-run/error panels. The card's failure banner exists in the
-  component but no code path reaches it until the API does.
+- **Options 1b, 1e, 1f**: the desktop split view, the edit-before-write variant, and
+  the first-run / missing-scope / quota panels.
 - **The backend.** There is none. The pipeline in `../src` is a one-shot batch job that
   emails a Digest and exits — no database, no server, no `DetectedEvent` extraction, no
   calendar writes. `src/fixtures.ts` stands in for the API and is shaped to match the
@@ -60,3 +74,14 @@ overlooked:
 - Month abbreviations are pinned in `src/lib/format.ts`: recent ICU renders September as
   "Sept" in en-GB, and the design calls for "Sep".
 - Times render in the viewer's timezone. The design's screenshots are GMT+8.
+- The mobile mock's phone status bar ("9:41", signal bars) and the 26px device corner
+  radius are design-board chrome, not app UI, so they are not reproduced.
+- `DetectedEvent` carries a `sourceAccountEmail` — the Mail Account the email arrived
+  on. The sheet's "same source as email" hint is per-account, and a User can connect
+  several accounts of one provider (CONTEXT.md), so the provider alone cannot identify
+  it. The desktop picker's hint stays provider-level ("same source" / "cross-provider")
+  as the handoff specifies.
+- "Open in calendar" on the confirmed mobile card is disabled until the API returns the
+  provider's event link.
+- The mobile summaries section is headed "today" only when it has today's Summaries;
+  otherwise it says "recent", rather than showing older items under a "today" heading.

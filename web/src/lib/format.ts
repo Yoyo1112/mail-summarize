@@ -24,6 +24,12 @@ export function formatEventDate(iso: string): string {
   return `${weekdayAbbrev(date)} ${day} ${monthAbbrev(date)} ${date.getFullYear()}`;
 }
 
+/** "Thu 10 Sep" — the mobile layouts drop the year to fit the narrow column. */
+export function formatEventDateShort(iso: string): string {
+  const date = new Date(iso);
+  return `${weekdayAbbrev(date)} ${date.getDate()} ${monthAbbrev(date)}`;
+}
+
 /** "14:00" */
 export function formatTime(iso: string): string {
   return new Intl.DateTimeFormat("en-GB", {
@@ -48,6 +54,15 @@ function formatZone(iso: string): string {
 export function formatEventTime(startsAt: string, endsAt: string | null): string {
   if (!endsAt) return formatTime(startsAt);
   return `${formatTime(startsAt)} – ${formatTime(endsAt)} ${formatZone(startsAt)}`.trim();
+}
+
+/**
+ * "14:00–15:00" or "09:30". The mobile layouts use a tight en dash and drop the
+ * timezone, which the narrow column has no room for.
+ */
+export function formatEventTimeShort(startsAt: string, endsAt: string | null): string {
+  if (!endsAt) return formatTime(startsAt);
+  return `${formatTime(startsAt)}–${formatTime(endsAt)}`;
 }
 
 /** "Today" / "Yesterday" / "Mon 8 Sep" — the right-hand column of the summary table. */

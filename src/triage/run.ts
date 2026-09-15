@@ -3,6 +3,7 @@ import { zodOutputFormat } from "@anthropic-ai/sdk/helpers/zod";
 import { z } from "zod";
 import { config } from "../config.js";
 import type { NormalizedEmail } from "../mail/types.js";
+import { inBatches } from "../batch.js";
 import { passesCoarseFilter } from "./rules.js";
 
 const client = new Anthropic({ apiKey: config.anthropicApiKey });
@@ -25,11 +26,20 @@ export interface TriagedEmail {
   summary: string;
 }
 
-/** Rule-based coarse filter, then a single batched LLM call for the survivors. See CONTEXT.md: Triage. */
+/** Emails per LLM call — small enough that every email's judgment fits the output budget. */
+const BATCH_SIZE = 25;
+
+/** Rule-based coarse filter, then batched LLM calls for the survivors. See CONTEXT.md: Triage. */
 export async function triage(emails: NormalizedEmail[]): Promise<TriagedEmail[]> {
   const candidates = emails.filter(passesCoarseFilter);
-  if (candidates.length === 0) return [];
+  const triaged: TriagedEmail[] = [];
+  for (const batch of inBatches(candidates, BATCH_SIZE)) {
+    triaged.push(...(await triageBatch(batch)));
+  }
+  return triaged;
+}
 
+async function triageBatch(candidates: NormalizedEmail[]): Promise<TriagedEmail[]> {
   const response = await client.messages.parse({
     model: "claude-sonnet-5",
     max_tokens: 4096,
@@ -58,7 +68,10 @@ export async function triage(emails: NormalizedEmail[]): Promise<TriagedEmail[]>
 
   const parsed = response.parsed_output;
   if (!parsed) {
-    throw new Error("Triage response failed to parse against the expected schema.");
+    throw new Error(
+      `Triage response failed to parse against the expected schema (stop_reason: ${response.stop_reason}, ` +
+        `output_tokens: ${response.usage.output_tokens}).`,
+    );
   }
 
   const byId = new Map(candidates.map((email) => [email.id, email]));

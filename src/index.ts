@@ -118,14 +118,15 @@ async function detectAndStoreEvents(triaged: Awaited<ReturnType<typeof triage>>)
   }
 
   // Mark examined only after storing, so a crash mid-run re-examines rather than
-  // silently dropping the events it had not written yet.
+  // silently dropping the events it had not written yet. Only emails detection actually
+  // answered for are marked — one it had to skip is tried again on the next run.
   for (const provider of ["gmail", "outlook"] as const) {
-    const ids = fresh.filter((item) => item.email.provider === provider).map((item) => item.email.id);
+    const ids = detections.filter(({ email }) => email.provider === provider).map(({ email }) => email.id);
     markProcessed(provider, ids);
   }
 
   console.log(
-    `Event detection: examined ${fresh.length} emails, stored ${stored} pending detected event${stored === 1 ? "" : "s"}.`,
+    `Event detection: examined ${detections.length} of ${fresh.length} emails, stored ${stored} pending detected event${stored === 1 ? "" : "s"}.`,
   );
 }
 

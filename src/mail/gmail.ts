@@ -1,11 +1,10 @@
 import { google } from "googleapis";
 import { config } from "../config.js";
+import { googleAuth } from "../google-auth.js";
 import { MAX_MESSAGES_PER_RUN, type NormalizedEmail } from "./types.js";
 
 function client() {
-  const auth = new google.auth.OAuth2(config.google.clientId, config.google.clientSecret);
-  auth.setCredentials({ refresh_token: config.google.refreshToken });
-  return google.gmail({ version: "v1", auth });
+  return google.gmail({ version: "v1", auth: googleAuth() });
 }
 
 function headerValue(headers: { name?: string | null; value?: string | null }[] | undefined, name: string): string {

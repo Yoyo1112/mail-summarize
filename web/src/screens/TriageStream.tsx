@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import type { Calendar, DetectedEvent, Summary, Tab } from "../types";
+import type { Calendar, ConfirmError, DetectedEvent, Summary, Tab } from "../types";
 import type { ConnectedAccount } from "../lib/api";
 import { formatAgo } from "../lib/format";
 import { useIsMobile } from "../lib/useMediaQuery";
@@ -122,7 +122,22 @@ export function TriageStream({
         providerEventUrl: null,
       });
 
-      await (wasConfirmed ? api.undoConfirm(id) : api.restoreEvent(id));
+      try {
+        await (wasConfirmed ? api.undoConfirm(id) : api.restoreEvent(id));
+      } catch (error) {
+        // Roll back: an Undo that failed to delete means the event is still on the calendar.
+        const payload = error instanceof api.ApiError ? (error.body as { error?: ConfirmError } | null) : null;
+        patchEvent(id, {
+          status: event.status,
+          confirmedAt: event.confirmedAt,
+          ignoredAt: event.ignoredAt,
+          providerEventUrl: event.providerEventUrl,
+          error:
+            typeof payload?.error === "object" && payload.error?.code
+              ? payload.error
+              : { code: "network", message: "Could not undo · the request did not complete" },
+        });
+      }
     },
     [events, patchEvent],
   );

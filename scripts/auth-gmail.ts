@@ -70,7 +70,16 @@ async function main() {
   authUrl.searchParams.set("client_id", clientId!);
   authUrl.searchParams.set("redirect_uri", redirectUri);
   authUrl.searchParams.set("response_type", "code");
-  authUrl.searchParams.set("scope", "https://www.googleapis.com/auth/gmail.readonly");
+  // Mail is read-only. Calendar access is limited to writing events and listing calendars,
+  // which is what a Confirmation needs (src/calendar/google.ts) — never the full calendar scope.
+  authUrl.searchParams.set(
+    "scope",
+    [
+      "https://www.googleapis.com/auth/gmail.readonly",
+      "https://www.googleapis.com/auth/calendar.events",
+      "https://www.googleapis.com/auth/calendar.calendarlist.readonly",
+    ].join(" "),
+  );
   authUrl.searchParams.set("access_type", "offline");
   authUrl.searchParams.set("prompt", "consent"); // forces a refresh_token even on repeat runs
   authUrl.searchParams.set("code_challenge", codeChallenge);

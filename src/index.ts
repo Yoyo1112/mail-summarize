@@ -1,4 +1,5 @@
 import { config } from "./config.js";
+import { describeError } from "./errors.js";
 import { fetchRecentGmail, getGmailAccountEmail } from "./mail/gmail.js";
 import { fetchRecentOutlook, getOutlookAccountEmail } from "./mail/outlook.js";
 import { contentFingerprint, dropDuplicates } from "./mail/dedupe.js";
@@ -142,7 +143,7 @@ async function resolveAccountEmails(
 
 main()
   .catch((error) => {
-    console.error("Digest run failed:", error);
+    console.error(`Digest run failed: ${describeError(error)}`);
     process.exitCode = 1;
   })
   .finally(closeDb);

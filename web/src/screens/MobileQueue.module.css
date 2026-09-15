@@ -1,0 +1,70 @@
+/* 1c — mobile queue. The review queue first, summaries as a scroll below. */
+.frame {
+  min-height: 100vh;
+  background: var(--paper);
+}
+
+.body {
+  padding: 16px 18px 22px;
+}
+
+.queueHead {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 0 0 10px;
+}
+
+.queueLabel {
+  font: 500 9.5px/1 var(--mono);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--text-62);
+}
+
+.queueCount {
+  font: 500 9.5px/1 var(--mono);
+  padding: 3px 6px;
+  border-radius: var(--radius-control);
+  background: var(--amber);
+  color: #fff;
+}
+
+.queueCountEmpty {
+  background: transparent;
+  color: var(--text-62);
+  padding: 3px 0;
+}
+
+.queue {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.summariesHead {
+  margin: 26px 0 10px;
+  padding-top: 18px;
+  border-top: 1px solid var(--rule-13);
+}
+
+.empty {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 28px 18px;
+  border: 1px dashed var(--rule-20);
+  border-radius: var(--radius-card);
+  background: rgba(30, 91, 60, 0.04);
+  text-align: center;
+}
+
+.emptyTitle {
+  font: 400 18px/1.25 var(--serif);
+}
+
+.emptyBody {
+  font: 400 12.5px/1.5 var(--sans);
+  color: var(--text-65);
+}

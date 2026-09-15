@@ -1,0 +1,81 @@
+.bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 22px;
+  height: 58px;
+  border-bottom: 1px solid var(--rule-13);
+  background: var(--card);
+}
+
+.brand {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+}
+
+.wordmark {
+  font: 400 22px/1 var(--serif);
+  letter-spacing: 0.01em;
+}
+
+.tagline {
+  font: 400 10px/1 var(--mono);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--text-62);
+}
+
+.right {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+/*
+ * There is no live push, so the age of the data is always on screen
+ * (README § 1f, freshness strip).
+ */
+.syncLine {
+  font: 400 11px/1 var(--mono);
+  color: var(--text-65);
+}
+
+.refresh {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  height: 32px;
+  padding: 0 12px;
+  border: 1px solid var(--rule-18);
+  border-radius: var(--radius-control);
+  background: var(--paper);
+  color: var(--ink);
+  font: 500 11px/1 var(--mono);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.refresh:hover:not(:disabled) {
+  background: var(--ink);
+  color: var(--paper);
+  border-color: var(--ink);
+}
+
+.refresh:disabled {
+  cursor: default;
+  opacity: 0.7;
+}
+
+.glyph {
+  display: inline-block;
+  font-size: 13px;
+  line-height: 1;
+}
+
+@media (max-width: 760px) {
+  .syncLine {
+    display: none;
+  }
+}

@@ -34,6 +34,29 @@ interface GraphMessage {
   bodyPreview?: string;
 }
 
+/**
+ * The address of the connected mailbox — the Mail Account, in CONTEXT.md's terms.
+ *
+ * Reading /me needs the User.Read scope, which the current Mail.Read-only token does
+ * not carry, so this falls back to OUTLOOK_ACCOUNT_EMAIL rather than forcing a
+ * re-consent. Set that variable to skip the request entirely.
+ */
+export async function getOutlookAccountEmail(): Promise<string> {
+  if (config.microsoft.accountEmail) return config.microsoft.accountEmail;
+
+  try {
+    const accessToken = await getAccessToken();
+    const response = await fetch("https://graph.microsoft.com/v1.0/me?$select=mail,userPrincipalName", {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+    if (!response.ok) return "";
+    const json = (await response.json()) as { mail?: string; userPrincipalName?: string };
+    return json.mail ?? json.userPrincipalName ?? "";
+  } catch {
+    return "";
+  }
+}
+
 /** Fetches mail received in the last `lookbackHours`. Nothing is persisted — see docs/adr/0002. */
 export async function fetchRecentOutlook(lookbackHours: number): Promise<NormalizedEmail[]> {
   const accessToken = await getAccessToken();
@@ -59,6 +82,7 @@ export async function fetchRecentOutlook(lookbackHours: number): Promise<Normali
     provider: "outlook" as const,
     id: message.id,
     from: message.from?.emailAddress?.address ?? message.from?.emailAddress?.name ?? "",
+    fromName: message.from?.emailAddress?.name,
     subject: message.subject ?? "",
     receivedAt: message.receivedDateTime,
     snippet: (message.bodyPreview ?? "").slice(0, 2000),

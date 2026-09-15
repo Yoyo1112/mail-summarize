@@ -1,0 +1,46 @@
+.strip {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 0 22px;
+  height: 42px;
+  border-bottom: 1px solid var(--rule-13);
+  background: var(--card);
+}
+
+.tab {
+  padding: 0 12px;
+  height: 41px;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  background: transparent;
+  font: 400 12.5px/1 var(--sans);
+  color: var(--text-68);
+  cursor: pointer;
+}
+
+.tab:hover {
+  color: var(--ink);
+}
+
+.tabActive {
+  border-bottom-color: var(--ink);
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.count {
+  font: 500 10px/1 var(--mono);
+  color: var(--text-62);
+}
+
+/* The pending queue count is the one number worth an amber pill. */
+.countPill {
+  padding: 3px 5px;
+  border-radius: var(--radius-control);
+  background: var(--amber);
+  color: #fff;
+}

@@ -5,12 +5,14 @@
   "description": "Phase 1: fetch Gmail + Outlook mail, triage and summarize with Claude, email a digest.",
   "type": "module",
   "scripts": {
-    "digest": "tsx src/index.ts",
+    "digest": "tsx --experimental-sqlite src/index.ts",
+    "events": "tsx --experimental-sqlite scripts/list-events.ts",
     "auth:gmail": "tsx scripts/auth-gmail.ts",
     "auth:outlook": "tsx scripts/auth-outlook.ts",
     "test:send": "tsx scripts/test-send.ts",
     "test:probe": "tsx scripts/send-test-probe.ts",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "serve": "tsx --experimental-sqlite src/api/server.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.122.0",

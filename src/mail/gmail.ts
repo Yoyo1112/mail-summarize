@@ -16,20 +16,53 @@ function decodeBase64Url(data: string): string {
   return Buffer.from(data, "base64url").toString("utf-8");
 }
 
-/** Walks a Gmail message payload for the first text/plain part, falling back to text/html stripped of tags. */
+/**
+ * Picks the readable body of a Gmail message: the text/plain part when it is usable,
+ * otherwise the text/html part reduced to text.
+ */
 function extractBody(payload: any): string {
-  if (!payload) return "";
-  if (payload.mimeType === "text/plain" && payload.body?.data) {
-    return decodeBase64Url(payload.body.data);
+  const parts = { plain: "", html: "" };
+  collectParts(payload, parts);
+  if (parts.plain && !looksLikeLeakedCss(parts.plain)) return parts.plain;
+  if (parts.html) return htmlToText(parts.html);
+  return parts.plain;
+}
+
+/** Records the first text/plain and first text/html part found, depth first. */
+function collectParts(payload: any, parts: { plain: string; html: string }): void {
+  if (!payload) return;
+  if (payload.body?.data) {
+    if (payload.mimeType === "text/plain" && !parts.plain) parts.plain = decodeBase64Url(payload.body.data);
+    if (payload.mimeType === "text/html" && !parts.html) parts.html = decodeBase64Url(payload.body.data);
   }
-  for (const part of payload.parts ?? []) {
-    const found = extractBody(part);
-    if (found) return found;
-  }
-  if (payload.mimeType === "text/html" && payload.body?.data) {
-    return decodeBase64Url(payload.body.data).replace(/<[^>]+>/g, " ");
-  }
-  return "";
+  for (const part of payload.parts ?? []) collectParts(part, parts);
+}
+
+/**
+ * Some senders (1111 Job Bank, for one) generate the text/plain part by stripping tags
+ * from their HTML, which leaves the stylesheet in as prose. A few CSS rules is enough
+ * to tell — ordinary mail almost never contains `selector { property: value }`.
+ */
+function looksLikeLeakedCss(text: string): boolean {
+  return (text.match(/[\w\-.#@\]]\s*\{[^{}]*:[^{}]*\}/g) ?? []).length >= 3;
+}
+
+const HTML_ENTITIES: Record<string, string> = { nbsp: " ", amp: "&", lt: "<", gt: ">", quot: '"', "#39": "'" };
+
+/**
+ * Reduces an HTML body to its readable text. Stripping tags alone is not enough: the
+ * contents of <style> and <script> are text too, and templated mail (job boards,
+ * booking sites) can open with enough CSS to fill the whole 2000-character budget
+ * before the first real sentence.
+ */
+function htmlToText(html: string): string {
+  return html
+    .replace(/<!--[\s\S]*?-->/g, " ")
+    .replace(/<(style|script|head)\b[\s\S]*?<\/\1>/gi, " ")
+    .replace(/<[^>]+>/g, " ")
+    .replace(/&(nbsp|amp|lt|gt|quot|#39);/g, (_, name: string) => HTML_ENTITIES[name] ?? " ")
+    .replace(/\s+/g, " ")
+    .trim();
 }
 
 /**

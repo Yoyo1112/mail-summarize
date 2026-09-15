@@ -1,6 +1,7 @@
 import { config } from "./config.js";
 import { fetchRecentGmail, getGmailAccountEmail } from "./mail/gmail.js";
 import { fetchRecentOutlook, getOutlookAccountEmail } from "./mail/outlook.js";
+import { contentFingerprint, dropDuplicates } from "./mail/dedupe.js";
 import { parseSender } from "./mail/sender.js";
 import type { MailProvider } from "./mail/types.js";
 import { triage } from "./triage/run.js";
@@ -10,7 +11,9 @@ import { sendDigest } from "./digest/send.js";
 import {
   LAST_RUN_AT,
   filterUnprocessed,
+  findFingerprintOwners,
   markProcessed,
+  recordFingerprints,
   saveDetectedEvent,
   saveSummary,
   setMeta,
@@ -24,8 +27,19 @@ async function main() {
     fetchRecentOutlook(config.lookbackHours),
   ]);
 
-  const emails = [...gmail, ...outlook];
-  console.log(`Fetched ${gmail.length} Gmail + ${outlook.length} Outlook = ${emails.length} emails.`);
+  const fetched = [...gmail, ...outlook];
+  console.log(`Fetched ${gmail.length} Gmail + ${outlook.length} Outlook = ${fetched.length} emails.`);
+
+  // Drop copies of mail already seen under another message id, before anything is spent
+  // on them — so a resent notice is neither summarised nor in the digest twice.
+  const { unique: emails, duplicates, newFingerprints } = dropDuplicates(
+    fetched,
+    findFingerprintOwners(fetched.map(contentFingerprint)),
+  );
+  recordFingerprints(newFingerprints);
+  if (duplicates.length > 0) {
+    console.log(`Skipped ${duplicates.length} duplicate email${duplicates.length === 1 ? "" : "s"} (same sender, subject and body).`);
+  }
 
   const triaged = await triage(emails);
   console.log(`Triage kept ${triaged.length} of ${emails.length} as important.`);

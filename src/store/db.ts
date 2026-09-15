@@ -62,6 +62,18 @@ create table if not exists processed_messages (
 );
 
 /*
+ * Content fingerprints (src/mail/dedupe.ts) and the message each was first seen on, so a
+ * copy of an already-digested email sent under a new message id is skipped on a later
+ * run. Holds hashes only, never content (ADR-0002).
+ */
+create table if not exists content_fingerprints (
+  fingerprint   text primary key,
+  provider      text not null,
+  message_id    text not null,
+  first_seen_at text not null
+);
+
+/*
  * Small key/value corner for run bookkeeping — currently just when the pipeline
  * last completed. The page has no live push, so it always states the age of what
  * it is showing, and that age has to come from somewhere.

@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import { db } from "./db.js";
 import type { DetectedEventStatus, StoredDetectedEvent, StoredSummary } from "./types.js";
 import type { MailProvider } from "../mail/types.js";
+import type { FingerprintOwner } from "../mail/dedupe.js";
 
 /**
  * `node:sqlite` types every row as `Record<string, SQLOutputValue>`, so reading a row
@@ -173,6 +174,36 @@ export function markProcessed(provider: MailProvider, messageIds: string[]): voi
   const now = new Date().toISOString();
   for (const messageId of messageIds) {
     statement.run(provider, messageId, now);
+  }
+}
+
+/** The message each of these fingerprints was first seen on, for those seen before. */
+export function findFingerprintOwners(fingerprints: string[]): Map<string, FingerprintOwner> {
+  const owners = new Map<string, FingerprintOwner>();
+  if (fingerprints.length === 0) return owners;
+
+  const placeholders = fingerprints.map(() => "?").join(", ");
+  const found = db()
+    .prepare(
+      `select fingerprint, provider, message_id from content_fingerprints
+       where fingerprint in (${placeholders})`,
+    )
+    .all(...fingerprints);
+
+  for (const row of rows<{ fingerprint: string; provider: string; message_id: string }>(found)) {
+    owners.set(row.fingerprint, { provider: row.provider as MailProvider, messageId: row.message_id });
+  }
+  return owners;
+}
+
+export function recordFingerprints(entries: { fingerprint: string; owner: FingerprintOwner }[]): void {
+  const statement = db().prepare(
+    `insert or ignore into content_fingerprints (fingerprint, provider, message_id, first_seen_at)
+     values (?, ?, ?, ?)`,
+  );
+  const now = new Date().toISOString();
+  for (const { fingerprint, owner } of entries) {
+    statement.run(fingerprint, owner.provider, owner.messageId, now);
   }
 }
 

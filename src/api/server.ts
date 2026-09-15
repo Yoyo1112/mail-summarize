@@ -6,15 +6,20 @@ import { describeError } from "../errors.js";
 import {
   LAST_RUN_AT,
   countSummaries,
+  getEvent,
   getMeta,
   ignoreEvent,
   listEventsByStatus,
   listRecentSummaries,
+  markConfirmed,
+  recordConfirmError,
   restoreEvent,
   setTargetCalendar,
 } from "../store/repository.js";
 import type { DetectedEventStatus, StoredDetectedEvent, StoredSummary } from "../store/types.js";
-import { calendarAccess } from "./calendars.js";
+import { deleteEvent, writeEvent } from "../calendar/index.js";
+import { CalendarWriteError, type ConfirmError, type ConfirmErrorCode } from "../calendar/types.js";
+import { calendarAccess, defaultCalendarId } from "./calendars.js";
 
 const STATUSES: DetectedEventStatus[] = ["pending", "confirmed", "ignored"];
 
@@ -33,7 +38,7 @@ function toWireEvent(event: StoredDetectedEvent) {
     subject: event.subject,
     detectedAt: event.detectedAt,
     status: event.status,
-    targetCalendarId: event.targetCalendarId ?? "",
+    targetCalendarId: event.targetCalendarId ?? defaultCalendarId(event.provider) ?? "",
     error: event.errorCode
       ? { code: event.errorCode, message: event.errorMessage ?? "Could not write" }
       : null,
@@ -120,6 +125,20 @@ async function serveStatic(pathname: string, response: ServerResponse): Promise<
   }
 }
 
+const HTTP_STATUS_FOR: Record<ConfirmErrorCode, number> = {
+  missing_scope: 409,
+  quota_exceeded: 429,
+  token_expired: 502,
+  network: 502,
+};
+
+/** Any failure from a calendar write, as the typed error the card renders. */
+function confirmErrorFrom(error: unknown): ConfirmError {
+  if (error instanceof CalendarWriteError) return error.detail;
+  console.error(`Calendar write failed: ${describeError(error)}`);
+  return { code: "network", message: "Could not write · the request did not complete" };
+}
+
 async function handleApi(
   request: IncomingMessage,
   response: ServerResponse,
@@ -150,13 +169,13 @@ async function handleApi(
   }
 
   if (pathname === "/api/calendars" && method === "GET") {
-    const access = calendarAccess();
+    const access = await calendarAccess();
     json(response, 200, { calendars: access.calendars, scopeMissing: access.scopeMissing });
     return true;
   }
 
   if (pathname === "/api/status" && method === "GET") {
-    const access = calendarAccess();
+    const access = await calendarAccess();
     json(response, 200, {
       lastRunAt: getMeta(LAST_RUN_AT),
       timezone: config.timezone,
@@ -177,32 +196,63 @@ async function handleApi(
       return true;
     }
 
-    // Restore a Dismissal, and Undo a Confirmation, are the same transition.
-    if ((action === "restore" && method === "POST") || (action === "confirm" && method === "DELETE")) {
+    if (action === "restore" && method === "POST") {
       const event = restoreEvent(id);
       if (!event) return json(response, 404, { error: "not_found" }), true;
       json(response, 200, { event: toWireEvent(event) });
       return true;
     }
 
+    // Undo a Confirmation: delete what was written, then return the event to Pending.
+    // If the calendar delete fails the event stays confirmed — it is still on the calendar.
+    if (action === "confirm" && method === "DELETE") {
+      const existing = getEvent(id);
+      if (!existing) return json(response, 404, { error: "not_found" }), true;
+
+      if (existing.status === "confirmed" && existing.providerEventId && existing.targetCalendarId) {
+        try {
+          await deleteEvent(existing.targetCalendarId, existing.providerEventId);
+        } catch (error) {
+          const detail = confirmErrorFrom(error);
+          json(response, HTTP_STATUS_FOR[detail.code], { error: detail });
+          return true;
+        }
+      }
+
+      json(response, 200, { event: toWireEvent(restoreEvent(id)!) });
+      return true;
+    }
+
     if (action === "confirm" && method === "POST") {
+      const existing = getEvent(id);
+      if (!existing) return json(response, 404, { error: "not_found" }), true;
+      if (existing.status === "confirmed") return json(response, 200, { event: toWireEvent(existing) }), true;
+      if (existing.status !== "pending") return json(response, 409, { error: "not_pending" }), true;
+
       const body = await readJsonBody(request);
-      const calendarId = typeof body.calendarId === "string" ? body.calendarId : "";
+      const requested = typeof body.calendarId === "string" ? body.calendarId : "";
+      const calendarId = requested || existing.targetCalendarId || defaultCalendarId(existing.provider) || "";
       if (calendarId) setTargetCalendar(id, calendarId);
 
-      /*
-       * Writing to a calendar needs the calendar.events / Calendars.ReadWrite scopes,
-       * which the current read-only tokens do not carry. Refusing here — rather than
-       * pretending to succeed — is what keeps the UI honest: nothing is ever reported
-       * as added to a calendar unless it was.
-       */
-      json(response, 409, {
-        error: {
-          code: "missing_scope",
-          message: "Could not write · calendar access not granted",
-          diagnostic: "The connected accounts hold read-only mail scopes.",
-        },
-      });
+      // Nothing is reported as added to a calendar unless the provider confirmed the write.
+      try {
+        const written = await writeEvent(calendarId, {
+          detectedEventId: existing.id,
+          title: existing.title,
+          startsAt: existing.startsAt,
+          endsAt: existing.endsAt,
+          location: existing.location,
+          senderName: existing.senderName,
+          senderEmail: existing.senderEmail,
+          subject: existing.subject,
+        });
+        const event = markConfirmed(id, { calendarId, ...written });
+        json(response, 200, { event: toWireEvent(event!) });
+      } catch (error) {
+        const detail = confirmErrorFrom(error);
+        recordConfirmError(id, detail);
+        json(response, HTTP_STATUS_FOR[detail.code], { error: detail });
+      }
       return true;
     }
   }

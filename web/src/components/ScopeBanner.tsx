@@ -38,8 +38,10 @@ export function ScopeBanner({ accounts }: ScopeBannerProps) {
       </div>
 
       <div className={styles.how}>
-        Add the calendar scopes, then re-consent from the terminal:
-        <code className={styles.command}>npm run auth:gmail{"\n"}npm run auth:outlook</code>
+        Enable the Google Calendar API for the Cloud project, then re-consent from the terminal
+        and put the new token in <code>.env</code>:
+        <code className={styles.command}>npm run auth:gmail</code>
+        Writing to Outlook calendars is not supported yet.
       </div>
     </section>
   );

@@ -241,6 +241,34 @@ export function restoreEvent(id: string): StoredDetectedEvent | null {
   return getEvent(id);
 }
 
+/**
+ * Confirmation — the event was written to its Target Calendar. Records where, so the
+ * card can link to it and an Undo can delete it.
+ */
+export function markConfirmed(
+  id: string,
+  written: { calendarId: string; providerEventId: string; providerEventUrl: string | null },
+): StoredDetectedEvent | null {
+  db()
+    .prepare(
+      `update detected_events
+          set status = 'confirmed', confirmed_at = ?, ignored_at = null,
+              target_calendar_id = ?, provider_event_id = ?, provider_event_url = ?,
+              error_code = null, error_message = null
+        where id = ?`,
+    )
+    .run(new Date().toISOString(), written.calendarId, written.providerEventId, written.providerEventUrl, id);
+  return getEvent(id);
+}
+
+/** A failed write leaves the event Pending with the failure attached, never silently dropped. */
+export function recordConfirmError(id: string, error: { code: string; message: string }): StoredDetectedEvent | null {
+  db()
+    .prepare(`update detected_events set error_code = ?, error_message = ? where id = ? and status = 'pending'`)
+    .run(error.code, error.message, id);
+  return getEvent(id);
+}
+
 /** Records which calendar a Confirmation should write to. */
 export function setTargetCalendar(id: string, calendarId: string): StoredDetectedEvent | null {
   db()

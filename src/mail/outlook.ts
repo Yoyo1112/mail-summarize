@@ -1,5 +1,5 @@
 import { config } from "../config.js";
-import type { NormalizedEmail } from "./types.js";
+import { MAX_MESSAGES_PER_RUN, type NormalizedEmail } from "./types.js";
 
 const GRAPH_SCOPE = "https://graph.microsoft.com/Mail.Read offline_access";
 
@@ -65,20 +65,31 @@ export async function fetchRecentOutlook(lookbackHours: number): Promise<Normali
   const url = new URL("https://graph.microsoft.com/v1.0/me/messages");
   url.searchParams.set("$filter", `receivedDateTime ge ${since}`);
   url.searchParams.set("$select", "id,from,subject,receivedDateTime,bodyPreview");
-  url.searchParams.set("$top", "50");
+  url.searchParams.set("$top", "100");
   url.searchParams.set("$orderby", "receivedDateTime desc");
 
-  const response = await fetch(url, {
-    headers: { Authorization: `Bearer ${accessToken}`, Prefer: 'outlook.body-content-type="text"' },
-  });
-
-  if (!response.ok) {
-    throw new Error(`Microsoft Graph fetch failed (${response.status}): ${await response.text()}`);
+  const messages: GraphMessage[] = [];
+  let next: string | undefined = url.toString();
+  while (next && messages.length < MAX_MESSAGES_PER_RUN) {
+    const response = await fetch(next, {
+      headers: { Authorization: `Bearer ${accessToken}`, Prefer: 'outlook.body-content-type="text"' },
+    });
+    if (!response.ok) {
+      throw new Error(`Microsoft Graph fetch failed (${response.status}): ${await response.text()}`);
+    }
+    const page = (await response.json()) as { value: GraphMessage[]; "@odata.nextLink"?: string };
+    messages.push(...page.value);
+    next = page["@odata.nextLink"];
   }
 
-  const json = (await response.json()) as { value: GraphMessage[] };
+  if (messages.length >= MAX_MESSAGES_PER_RUN) {
+    console.warn(
+      `Outlook: stopped at ${MAX_MESSAGES_PER_RUN} messages; older mail in the ${lookbackHours}h window was not fetched.`,
+    );
+    messages.length = MAX_MESSAGES_PER_RUN;
+  }
 
-  return json.value.map((message) => ({
+  return messages.map((message) => ({
     provider: "outlook" as const,
     id: message.id,
     from: message.from?.emailAddress?.address ?? message.from?.emailAddress?.name ?? "",

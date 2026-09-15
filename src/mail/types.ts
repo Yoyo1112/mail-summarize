@@ -16,3 +16,10 @@ export interface NormalizedEmail {
   /** Plain-text body, truncated to keep Triage input small. Never persisted — see docs/adr/0002. */
   snippet: string;
 }
+
+/**
+ * Most messages fetched from one provider in one run. Both providers are paged through
+ * to the end of the lookback window; this only guards against a runaway window (a
+ * mistyped LOOKBACK_HOURS, say), and hitting it is logged rather than silent.
+ */
+export const MAX_MESSAGES_PER_RUN = 500;

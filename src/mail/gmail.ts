@@ -1,6 +1,6 @@
 import { google } from "googleapis";
 import { config } from "../config.js";
-import type { NormalizedEmail } from "./types.js";
+import { MAX_MESSAGES_PER_RUN, type NormalizedEmail } from "./types.js";
 
 function client() {
   const auth = new google.auth.OAuth2(config.google.clientId, config.google.clientSecret);
@@ -75,23 +75,69 @@ export async function getGmailAccountEmail(): Promise<string> {
   return profile.data.emailAddress ?? "";
 }
 
+const RATE_LIMIT_REASONS = new Set(["rateLimitExceeded", "userRateLimitExceeded"]);
+const MAX_RATE_LIMIT_RETRIES = 6;
+
+/**
+ * Retries a Gmail call that was throttled, backing off 2s, 4s, 8s… up to a minute.
+ *
+ * Fetching a long window means one messages.get per email, and this project's per-user
+ * quota ran out after about 175 of them (277 in a 7-day window). Gmail reports that as
+ * 403 rateLimitExceeded, which googleapis's built-in retry (429 and 5xx only) does not
+ * cover. Any other error is rethrown at once.
+ */
+async function withRateLimitRetry<T>(call: () => Promise<T>): Promise<T> {
+  for (let attempt = 0; ; attempt += 1) {
+    try {
+      return await call();
+    } catch (error) {
+      const response = (error as { response?: { status?: number; data?: any } }).response;
+      const reason = response?.data?.error?.errors?.[0]?.reason;
+      const throttled = response?.status === 429 || (response?.status === 403 && RATE_LIMIT_REASONS.has(reason));
+      if (!throttled || attempt >= MAX_RATE_LIMIT_RETRIES) throw error;
+
+      const delayMs = Math.min(60_000, 2_000 * 2 ** attempt);
+      console.warn(`Gmail: rate limited, retrying in ${delayMs / 1000}s (attempt ${attempt + 1}/${MAX_RATE_LIMIT_RETRIES}).`);
+      await new Promise((resolve) => setTimeout(resolve, delayMs));
+    }
+  }
+}
+
 /** Fetches mail received in the last `lookbackHours`. Nothing is persisted — see docs/adr/0002. */
 export async function fetchRecentGmail(lookbackHours: number): Promise<NormalizedEmail[]> {
   const gmail = client();
   const afterEpochSeconds = Math.floor(Date.now() / 1000 - lookbackHours * 3600);
 
-  const list = await gmail.users.messages.list({
-    userId: "me",
-    q: `after:${afterEpochSeconds} -in:chats`,
-    maxResults: 50,
-  });
+  const messages: { id?: string | null }[] = [];
+  let pageToken: string | undefined;
+  do {
+    const list = await withRateLimitRetry(() =>
+      gmail.users.messages.list({
+        userId: "me",
+        q: `after:${afterEpochSeconds} -in:chats`,
+        maxResults: 100,
+        pageToken,
+      }),
+    );
+    messages.push(...(list.data.messages ?? []));
+    pageToken = list.data.nextPageToken ?? undefined;
+  } while (pageToken && messages.length < MAX_MESSAGES_PER_RUN);
 
-  const messages = list.data.messages ?? [];
+  if (messages.length >= MAX_MESSAGES_PER_RUN) {
+    console.warn(
+      `Gmail: stopped at ${MAX_MESSAGES_PER_RUN} messages; older mail in the ${lookbackHours}h window was not fetched.`,
+    );
+    messages.length = MAX_MESSAGES_PER_RUN;
+  }
+
   const emails: NormalizedEmail[] = [];
 
   for (const message of messages) {
     if (!message.id) continue;
-    const full = await gmail.users.messages.get({ userId: "me", id: message.id, format: "full" });
+    const id = message.id;
+    const full = await withRateLimitRetry(() =>
+      gmail.users.messages.get({ userId: "me", id, format: "full" }),
+    );
     const headers = full.data.payload?.headers ?? [];
     const body = extractBody(full.data.payload);
 

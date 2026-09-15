@@ -2,6 +2,7 @@ import { createServer, type IncomingMessage, type ServerResponse } from "node:ht
 import { readFile } from "node:fs/promises";
 import { extname, join, normalize, resolve } from "node:path";
 import { config } from "../config.js";
+import { describeError } from "../errors.js";
 import {
   LAST_RUN_AT,
   countSummaries,
@@ -224,7 +225,7 @@ export function startServer(port = Number(process.env.PORT ?? "3000")) {
         return serveStatic(url.pathname, response);
       })
       .catch((error) => {
-        console.error("Request failed:", error);
+        console.error(`Request failed: ${describeError(error)}`);
         if (!response.headersSent) json(response, 500, { error: "internal_error" });
       });
   });

@@ -128,7 +128,9 @@ export function DetectedEventCard({
                 <div className={styles.errorDiagnostic}>{event.error.diagnostic}</div>
               )}
               <div className={styles.errorReassurance}>
-                Nothing was added to your calendar.
+                {status === "confirmed"
+                  ? "The event is still on your calendar."
+                  : "Nothing was added to your calendar."}
               </div>
             </div>
           </div>
